@@ -8,7 +8,7 @@
 <style>
   body {
     margin: 0;
-    padding: 20px;
+    padding: 25px;
     font-family: Arial, sans-serif;
     background: #ffffff;
   }
@@ -21,9 +21,9 @@
 
   .subtitulo {
     text-align: center;
-    font-size: 12px;
+    font-size: 13px;
     color: #555;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
   }
 
   .acoes {
@@ -41,57 +41,68 @@
     cursor: pointer;
   }
 
-  /* ===== GRID DO ORGANOGRAMA ===== */
-  .organograma {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+  /* ===== AGRUPAMENTO POR NÍVEL ===== */
+
+  .nivel {
+    margin-bottom: 35px;
   }
 
-  /* BLOCO DA FUNÇÃO */
+  .nivel-titulo {
+    font-weight: bold;
+    color: #0b5ed7;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #0b5ed7;
+    padding-bottom: 5px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+
   .funcao {
     border: 2px solid #0b5ed7;
     border-radius: 12px;
-    padding: 12px;
+    padding: 10px;
     background: #f0f6ff;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    min-height: 90px;
   }
 
   .funcao-titulo {
     text-align: center;
     font-weight: bold;
-    color: #0b5ed7;
-    margin-bottom: 10px;
-    padding: 6px;
-    border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #0b5ed7;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: #0b2b45;
   }
 
   .pessoas {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
   }
 
   .pessoa {
-    border: 1px solid #0dcaf0;
+    background: #ffffff;
     border-radius: 6px;
     padding: 4px 6px;
-    font-size: 11px;
-    font-weight: bold;
-    background: #e6fbff;
-    text-align: center;
+    border: 1px solid #0dcaf0;
   }
 
   .vazio {
-    text-align: center;
     font-style: italic;
+    color: #888;
+    text-align: center;
     font-size: 11px;
-    color: #777;
+  }
+
+  .rodape {
+    margin-top: 30px;
+    font-size: 11px;
+    text-align: right;
+    color: #666;
   }
 
   /* ===== IMPRESSÃO ===== */
@@ -111,71 +122,105 @@
 <body>
 
 <h1>Organograma Funcional</h1>
-<div class="subtitulo">Exportação institucional – página horizontal</div>
+<div class="subtitulo">Estrutura Hierárquica Institucional</div>
 
 <div class="acoes">
   <button onclick="window.print()">Exportar para PDF</button>
 </div>
 
-<div id="organograma" class="organograma"></div>
+<div id="organograma"></div>
+
+<div class="rodape" id="dataGeracao"></div>
 
 <script>
-  const BASE =
-    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
+const BASE =
+  "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
-  const params = new URLSearchParams(window.location.search);
-  const POSTO_FILTRO = params.get("posto") || "TODOS";
+const params = new URLSearchParams(window.location.search);
+const POSTO_FILTRO = params.get("posto") || "TODOS";
 
-  const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
+const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
-  function cb(payload) {
-    montar(payload.hierarchy, payload.people);
-  }
+function cb(payload) {
+  montar(payload.hierarchy, payload.people);
+  gerarData();
+}
 
-  function montar(hierarchy, people) {
-    const container = document.getElementById("organograma");
-    container.innerHTML = "";
+function montar(hierarchy, people) {
+  const container = document.getElementById("organograma");
+  container.innerHTML = "";
 
-    hierarchy.forEach(h => {
-      let pessoasFunc = people.filter(p => p.func === h.func);
+  // Separação simples por níveis
+  const oficiais = ["CEL","TCEL","MAJ","CAP","1º TEN","2º TEN"];
+  const pracas = ["ASP","ST","1º SGT","2º SGT","3º SGT","CB","SD"];
 
-      if (POSTO_FILTRO !== "TODOS") {
-        pessoasFunc = pessoasFunc.filter(p => p.posto === POSTO_FILTRO);
-      }
+  criarNivel("OFICIAIS", oficiais, hierarchy, people, container);
+  criarNivel("PRAÇAS", pracas, hierarchy, people, container);
+}
 
-      const bloco = document.createElement("div");
-      bloco.className = "funcao";
+function criarNivel(titulo, listaPostos, hierarchy, people, container) {
+  const nivelDiv = document.createElement("div");
+  nivelDiv.className = "nivel";
 
-      const titulo = document.createElement("div");
-      titulo.className = "funcao-titulo";
-      titulo.textContent = "FUNÇÃO: " + h.func;
+  const tituloDiv = document.createElement("div");
+  tituloDiv.className = "nivel-titulo";
+  tituloDiv.textContent = titulo;
 
-      const pessoasDiv = document.createElement("div");
-      pessoasDiv.className = "pessoas";
+  const grid = document.createElement("div");
+  grid.className = "grid";
 
-      if (pessoasFunc.length === 0) {
-        const vazio = document.createElement("div");
-        vazio.className = "vazio";
-        vazio.textContent = "Sem pessoas cadastradas";
-        pessoasDiv.appendChild(vazio);
-      } else {
-        pessoasFunc.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "pessoa";
-          card.textContent = `${p.posto} - ${p.nome}`;
-          pessoasDiv.appendChild(card);
-        });
-      }
+  hierarchy.forEach(h => {
+    if (!listaPostos.includes(h.func)) return;
 
-      bloco.appendChild(titulo);
-      bloco.appendChild(pessoasDiv);
-      container.appendChild(bloco);
-    });
-  }
+    let pessoasFunc = people.filter(p => p.func === h.func);
 
-  const s = document.createElement("script");
-  s.src = DATA_URL;
-  document.head.appendChild(s);
+    if (POSTO_FILTRO !== "TODOS") {
+      pessoasFunc = pessoasFunc.filter(p => p.posto === POSTO_FILTRO);
+    }
+
+    const bloco = document.createElement("div");
+    bloco.className = "funcao";
+
+    const funcTitulo = document.createElement("div");
+    funcTitulo.className = "funcao-titulo";
+    funcTitulo.textContent = h.func;
+
+    const pessoasDiv = document.createElement("div");
+    pessoasDiv.className = "pessoas";
+
+    if (pessoasFunc.length === 0) {
+      const vazio = document.createElement("div");
+      vazio.className = "vazio";
+      vazio.textContent = "Sem pessoas";
+      pessoasDiv.appendChild(vazio);
+    } else {
+      pessoasFunc.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "pessoa";
+        card.textContent = `${p.posto} - ${p.nome}`;
+        pessoasDiv.appendChild(card);
+      });
+    }
+
+    bloco.appendChild(funcTitulo);
+    bloco.appendChild(pessoasDiv);
+    grid.appendChild(bloco);
+  });
+
+  nivelDiv.appendChild(tituloDiv);
+  nivelDiv.appendChild(grid);
+  container.appendChild(nivelDiv);
+}
+
+function gerarData() {
+  const agora = new Date();
+  document.getElementById("dataGeracao").textContent =
+    "Gerado em: " + agora.toLocaleString("pt-BR");
+}
+
+const s = document.createElement("script");
+s.src = DATA_URL;
+document.head.appendChild(s);
 </script>
 
 </body>
