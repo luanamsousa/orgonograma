@@ -8,74 +8,117 @@
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    html, body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
-    body { overflow-x: hidden; }
-    .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    .title { font-size: 22px; font-weight: 900; margin-bottom: 12px; color:#0b1b2a; }
-    #status { font-size: 14px; color:#333; margin: 8px 0 14px; }
-    #debug  { font-size: 12px; color:#666; white-space: pre-wrap; background:#f5f5f5; padding:10px; border-radius:8px; }
+    :root{
+      --blue1:#0B5ED7;
+      --blue2:#0DCAF0;
+      --ink:#0b1b2a;
+      --bg:#ffffff;
+    }
 
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      font-family: Arial, sans-serif;
+      overflow-x: hidden;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .title {
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    #status {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: #444;
+    }
+
+    /* caixas */
     .box-funcao{
-      background:#0B5ED7; color:#fff; border-radius:18px;
-      padding:14px 16px; font-weight:900; text-transform:uppercase;
-      box-shadow:0 4px 14px rgba(0,0,0,.15);
-      width:220px; text-align:center; line-height:1.15; white-space:normal;
+      background: var(--blue1);
+      color: #fff;
+      border-radius: 18px;
+      padding: 14px 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      box-shadow: 0 4px 14px rgba(0,0,0,.15);
+      width: 220px;
+      text-align: center;
+      line-height: 1.15;
+      white-space: normal;
     }
+
     .box-pessoa{
-      background:#0DCAF0; color:#053B4C; border-radius:18px;
-      padding:12px 14px; font-weight:900;
-      box-shadow:0 4px 14px rgba(0,0,0,.12);
-      width:230px; text-align:center; line-height:1.15; white-space:normal;
+      background: var(--blue2);
+      color: #053B4C;
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-weight: 900;
+      box-shadow: 0 4px 14px rgba(0,0,0,.12);
+      width: 230px;
+      text-align: center;
+      line-height: 1.15;
+      white-space: normal;
     }
-    #chart { width: 100%; overflow-x: hidden; margin-top: 12px; }
-    .google-visualization-orgchart-node { border:none!important; }
-    .google-visualization-orgchart-node div { white-space:normal!important; }
+
+    #chart {
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    .google-visualization-orgchart-node {
+      border: none !important;
+    }
+
+    .google-visualization-orgchart-node div {
+      white-space: normal !important;
+    }
+
     .google-visualization-orgchart-lineleft,
     .google-visualization-orgchart-lineright,
-    .google-visualization-orgchart-linebottom { border-color:#2b2b2b!important; }
+    .google-visualization-orgchart-linebottom {
+      border-color: #2b2b2b !important;
+    }
   </style>
 </head>
 
 <body>
   <div class="page">
     <div class="title">Organograma funcional</div>
-    <div id="status">Carregando…</div>
-    <div id="debug"></div>
+    <div id="status">Carregando dados…</div>
     <div id="chart"></div>
   </div>
 
   <script>
-    // 👉 COLE A SUA URL /exec AQUI:
+    /* ============================
+       URL CORRETA DO APPS SCRIPT
+       (JSONP funcionando)
+    ============================ */
     const BASE_EXEC =
-      "https://script.google.com/macros/s/AKfycbyBZqjlh4cyAOnH-GiZVGYy1lw7YnZrdV5-RLEltltdJj3FWLoJ78BSFazoY0NoEZHB1A/exec";
+      "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
     const DATA_URL = BASE_EXEC + "?mode=data&callback=cb&_=" + Date.now();
 
     const statusEl = document.getElementById("status");
-    const debugEl  = document.getElementById("debug");
 
-    // timeout: se o cb não for chamado em 8s, mostramos aviso
-    const t = setTimeout(() => {
-      statusEl.textContent = "❌ Não retornou dados (callback não foi chamado).";
-      debugEl.textContent =
-        "Verifique se a URL de dados abre no navegador e retorna algo assim: cb({...});\n\n" +
-        "URL usada:\n" + DATA_URL;
-    }, 8000);
-
+    /* JSONP callback */
     window.cb = function(payload) {
-      clearTimeout(t);
-
       if (!payload || payload.error) {
         statusEl.textContent = "❌ Erro ao carregar dados.";
-        debugEl.textContent = JSON.stringify(payload, null, 2);
+        statusEl.style.color = "red";
         return;
       }
 
-      statusEl.textContent = "✅ Dados carregados. Desenhando organograma…";
-      debugEl.textContent =
-        "updatedAt: " + payload.updatedAt + "\n" +
-        "hierarchy: " + (payload.hierarchy?.length || 0) + " linhas\n" +
-        "people: " + (payload.people?.length || 0) + " pessoas";
+      statusEl.textContent = "Dados carregados. Desenhando organograma…";
 
       google.charts.load('current', {packages:['orgchart']});
       google.charts.setOnLoadCallback(() => draw(payload));
@@ -85,23 +128,29 @@
       const { hierarchy, people } = payload;
 
       const peopleByFunc = new Map();
-      for (const p of people) {
+      people.forEach(p => {
         if (!peopleByFunc.has(p.func)) peopleByFunc.set(p.func, []);
         peopleByFunc.get(p.func).push(p);
-      }
+      });
 
       const rows = [];
 
-      for (const h of hierarchy) {
-        rows.push([nodeFunc(h.func), h.sup ? nodeFunc(h.sup) : "", h.func]);
-      }
+      // hierarquia de funções
+      hierarchy.forEach(h => {
+        rows.push([
+          nodeFunc(h.func),
+          h.sup ? nodeFunc(h.sup) : "",
+          h.func
+        ]);
+      });
 
+      // pessoas abaixo da função
       for (const [func, list] of peopleByFunc.entries()) {
         rows.push([nodeFunc(func), "", func]);
-        for (const p of list) {
+        list.forEach(p => {
           const label = `${p.posto} - ${p.nome}`;
           rows.push([nodePessoa(label), nodeFunc(func), func]);
-        }
+        });
       }
 
       const data = new google.visualization.DataTable();
@@ -111,30 +160,40 @@
       data.addRows(rows);
 
       const chart = new google.visualization.OrgChart(document.getElementById('chart'));
-      chart.draw(data, {allowHtml:true});
+      chart.draw(data, { allowHtml: true });
 
-      statusEl.textContent = "✅ Pronto!";
+      statusEl.textContent = "✔ Organograma carregado";
+      window.scrollTo(0, 0);
     }
 
     function esc(s){
-      return String(s||"")
-        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-    }
-    function nodeFunc(func){
-      return { v: "FUNC:" + func, f: `<div class="box-funcao">FUNÇÃO<br>${esc(func)}</div>` };
-    }
-    function nodePessoa(txt){
-      return { v: "PESS:" + txt, f: `<div class="box-pessoa">${esc(txt)}</div>` };
+      return String(s || "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;");
     }
 
-    // injeta JSONP
+    function nodeFunc(func){
+      return {
+        v: "FUNC:" + func,
+        f: `<div class="box-funcao">FUNÇÃO<br>${esc(func)}</div>`
+      };
+    }
+
+    function nodePessoa(txt){
+      return {
+        v: "PESS:" + txt,
+        f: `<div class="box-pessoa">${esc(txt)}</div>`
+      };
+    }
+
+    /* injeta o script JSONP */
     const s = document.createElement("script");
     s.src = DATA_URL;
     s.onerror = () => {
-      clearTimeout(t);
-      statusEl.textContent = "❌ Erro ao carregar o script JSONP.";
-      debugEl.textContent = "Falha ao abrir:\n" + DATA_URL;
+      statusEl.textContent = "❌ Erro ao carregar o script de dados.";
+      statusEl.style.color = "red";
     };
     document.head.appendChild(s);
   </script>
