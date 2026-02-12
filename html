@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organograma Funcional</title>
+
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    html, body { margin:0; padding:0; background:#fff; font-family: Arial, sans-serif; }
+    body { overflow-x: hidden; } /* evita barra lateral */
+
+    .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
+    .title { font-size: 18px; font-weight: 900; margin-bottom: 12px; color:#0b1b2a; }
+
+    /* visual azul */
+    .box-funcao{
+      background:#0B5ED7; color:#fff; border-radius:18px;
+      padding:14px 16px; font-weight:900; text-transform:uppercase;
+      box-shadow:0 4px 14px rgba(0,0,0,.15);
+      width:220px; text-align:center; line-height:1.15; white-space:normal;
+    }
+    .box-pessoa{
+      background:#0DCAF0; color:#053B4C; border-radius:18px;
+      padding:12px 14px; font-weight:900;
+      box-shadow:0 4px 14px rgba(0,0,0,.12);
+      width:230px; text-align:center; line-height:1.15; white-space:normal;
+    }
+
+    #chart { width: 100%; overflow-x: hidden; }
+
+    .google-visualization-orgchart-node { border:none!important; }
+    .google-visualization-orgchart-node div { white-space:normal!important; }
+    .google-visualization-orgchart-lineleft,
+    .google-visualization-orgchart-lineright,
+    .google-visualization-orgchart-linebottom { border-color:#2b2b2b!important; }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="title">Organograma funcional</div>
+    <div id="chart">Carregando…</div>
+  </div>
+
+  <script>
+    // ✅ Seu Apps Script como fonte de dados (JSONP)
+    const DATA_URL =
+      "https://script.google.com/macros/s/AKfycbyBZqjlh4cyAOnH-GiZVGYy1lw7YnZrdV5-RLEltltdJj3FWLoJ78BSFazoY0NoEZHB1A/exec" +
+      "?mode=data&callback=cb";
+
+    // JSONP callback (tem que se chamar igual ao callback=cb)
+    function cb(payload) {
+      if (payload.error) {
+        document.getElementById("chart").innerText = payload.error;
+        return;
+      }
+      google.charts.load('current', {packages:['orgchart']});
+      google.charts.setOnLoadCallback(() => draw(payload));
+    }
+
+    function draw(payload) {
+      const { hierarchy, people } = payload;
+
+      // pessoas por função
+      const peopleByFunc = new Map();
+      for (const p of people) {
+        if (!peopleByFunc.has(p.func)) peopleByFunc.set(p.func, []);
+        peopleByFunc.get(p.func).push(p);
+      }
+
+      // rows = [Name, Manager, ToolTip]
+      const rows = [];
+
+      // hierarquia de funções
+      for (const h of hierarchy) {
+        rows.push([nodeFunc(h.func), h.sup ? nodeFunc(h.sup) : "", h.func]);
+      }
+
+      // pessoas embaixo da função
+      for (const [func, list] of peopleByFunc.entries()) {
+        rows.push([nodeFunc(func), "", func]); // garante nó da função
+        for (const p of list) {
+          const label = `${p.posto} - ${p.nome}`;
+          rows.push([nodePessoa(label), nodeFunc(func), func]);
+        }
+      }
+
+      const data = new google.visualization.DataTable();
+      data.addColumn('string', 'Name');
+      data.addColumn('string', 'Manager');
+      data.addColumn('string', 'ToolTip');
+      data.addRows(rows);
+
+      const chart = new google.visualization.OrgChart(document.getElementById('chart'));
+      chart.draw(data, {allowHtml:true});
+
+      window.scrollTo(0,0);
+    }
+
+    function esc(s){
+      return String(s||"")
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+    function nodeFunc(func){
+      return { v: "FUNC:" + func, f: `<div class="box-funcao">FUNÇÃO<br>${esc(func)}</div>` };
+    }
+    function nodePessoa(txt){
+      return { v: "PESS:" + txt, f: `<div class="box-pessoa">${esc(txt)}</div>` };
+    }
+
+    // injeta script JSONP (evita cache com Date.now)
+    const s = document.createElement("script");
+    s.src = DATA_URL + "&_=" + Date.now();
+    document.head.appendChild(s);
+  </script>
+</body>
+</html>
