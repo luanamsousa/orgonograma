@@ -1,130 +1,138 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Organograma Funcional</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>Organograma Funcional</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f4f6f9;
-    }
+<style>
+  body {
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+  }
 
-    h1 {
-      color: #0d2b45;
-      margin-bottom: 10px;
-    }
+  h1 {
+    color: #0b2b45;
+    margin-bottom: 6px;
+  }
 
-    #status {
-      margin-bottom: 20px;
-      font-weight: bold;
-    }
+  #status {
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
 
-    .funcao-bloco {
-      background: white;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    }
+  .funcao {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
 
-    .funcao-titulo {
-      font-size: 18px;
-      font-weight: bold;
-      color: #0d2b45;
-      margin-bottom: 15px;
-      border-left: 6px solid #1eb6d6;
-      padding-left: 10px;
-    }
+  .funcao-titulo {
+    font-size: 18px;
+    font-weight: bold;
+    color: #0b5ed7;
+    margin-bottom: 14px;
+    border-left: 6px solid #0dcaf0;
+    padding-left: 10px;
+  }
 
-    .pessoas-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+  .pessoas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
-    .pessoa-card {
-      background: #1eb6d6;
-      color: #002b36;
-      padding: 10px 14px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-size: 13px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
+  .pessoa {
+    background: #0dcaf0;
+    color: #053b4c;
+    padding: 10px 14px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    white-space: nowrap;
+  }
 
-    @media (max-width: 600px) {
-      .pessoa-card {
-        font-size: 12px;
-      }
-    }
-  </style>
+  .vazio {
+    color: #777;
+    font-style: italic;
+  }
+</style>
 </head>
 
 <body>
 
 <h1>Organograma Funcional</h1>
-<div id="status">Carregando dados...</div>
+<div id="status">Carregando dados…</div>
 <div id="organograma"></div>
 
 <script>
-  const url = "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
+  // URL CORRETA DO SEU APPS SCRIPT (JSONP)
+  const BASE =
+    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
-  function carregarDados() {
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("status").innerHTML = "✓ Organograma carregado";
-        montarOrganograma(data.hierarchy, data.people);
-      })
-      .catch(err => {
-        document.getElementById("status").innerHTML = "❌ Erro ao carregar dados";
-        console.error(err);
-      });
+  const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
+
+  // CALLBACK JSONP
+  function cb(payload) {
+    if (!payload || payload.error) {
+      document.getElementById("status").innerHTML = "❌ Erro ao carregar dados";
+      console.error(payload);
+      return;
+    }
+
+    document.getElementById("status").innerHTML = "✓ Organograma carregado";
+    montar(payload.hierarchy, payload.people);
   }
 
-  function montarOrganograma(hierarchy, people) {
+  function montar(hierarchy, people) {
     const container = document.getElementById("organograma");
     container.innerHTML = "";
 
-    hierarchy.forEach(funcao => {
-
+    hierarchy.forEach(h => {
       const bloco = document.createElement("div");
-      bloco.className = "funcao-bloco";
+      bloco.className = "funcao";
 
       const titulo = document.createElement("div");
       titulo.className = "funcao-titulo";
-      titulo.textContent = funcao.name;
+      titulo.textContent = "FUNÇÃO: " + h.func;
 
-      const grid = document.createElement("div");
-      grid.className = "pessoas-grid";
+      const pessoasDiv = document.createElement("div");
+      pessoasDiv.className = "pessoas";
 
-      const pessoasDaFuncao = people.filter(p => p.role === funcao.id);
+      const pessoasFunc = people.filter(p => p.func === h.func);
 
-      if (pessoasDaFuncao.length === 0) {
+      if (pessoasFunc.length === 0) {
         const vazio = document.createElement("div");
-        vazio.textContent = "Nenhum integrante";
-        vazio.style.color = "#777";
-        grid.appendChild(vazio);
+        vazio.className = "vazio";
+        vazio.textContent = "Sem pessoas cadastradas";
+        pessoasDiv.appendChild(vazio);
       } else {
-        pessoasDaFuncao.forEach(pessoa => {
+        pessoasFunc.forEach(p => {
           const card = document.createElement("div");
-          card.className = "pessoa-card";
-          card.textContent = pessoa.name;
-          grid.appendChild(card);
+          card.className = "pessoa";
+          card.textContent = `${p.posto} - ${p.nome}`;
+          pessoasDiv.appendChild(card);
         });
       }
 
       bloco.appendChild(titulo);
-      bloco.appendChild(grid);
+      bloco.appendChild(pessoasDiv);
       container.appendChild(bloco);
     });
   }
 
-  carregarDados();
+  // INJETAR SCRIPT JSONP
+  const s = document.createElement("script");
+  s.src = DATA_URL;
+  s.onerror = () => {
+    document.getElementById("status").innerHTML = "❌ Erro ao carregar script";
+  };
+  document.head.appendChild(s);
 </script>
 
 </body>
