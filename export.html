@@ -1,98 +1,215 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>Organograma Funcional – Exportação</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
-  body {
-    margin: 0;
-    padding: 20px;
+  :root{
+    --blue-900:#0b2b45;
+    --blue-700:#0b5ed7;
+    --blue-500:#0dcaf0;
+    --line:#9db8d3;
+    --box-bg:#eef6ff;
+    --box-border:#7fb0ff;
+    --chip-bg:#e6fbff;
+    --chip-border:#86dff2;
+  }
+
+  body{
+    margin:0;
+    padding:18px 18px 28px;
     font-family: Arial, sans-serif;
-    background: #ffffff;
+    background:#fff;
+    color: var(--blue-900);
   }
 
-  h1 {
-    text-align: center;
-    color: #0b2b45;
-    margin-bottom: 10px;
+  h1{
+    text-align:center;
+    margin:0 0 6px 0;
+    color: var(--blue-900);
+    font-size: 22px;
   }
 
-  .acoes {
-    text-align: center;
-    margin-bottom: 20px;
+  .sub{
+    text-align:center;
+    margin:0 0 16px 0;
+    font-weight:bold;
+    color:#456;
+    font-size: 12px;
   }
 
-  button {
-    background: #0b5ed7;
-    color: #fff;
-    border: none;
-    padding: 10px 18px;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
+  .acoes{
+    text-align:center;
+    margin: 10px 0 16px;
   }
 
-  .organograma {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 40px;
+  button{
+    background: var(--blue-700);
+    color:#fff;
+    border:none;
+    padding:10px 16px;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+    box-shadow: 0 8px 18px rgba(11,94,215,.18);
+  }
+  button:hover{ background:#094bb0; }
+
+  /* ==========================
+     ORG CHART (TREE)
+  ========================== */
+  .wrap{
+    overflow:auto;
+    padding: 8px 6px 20px;
   }
 
-  /* Caixa da FUNÇÃO */
-  .funcao {
-    border: 2px solid #0b5ed7;
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-weight: bold;
-    text-align: center;
-    min-width: 220px;
-    background: #f0f6ff;
-  }
-
-  /* Linha vertical */
-  .linha {
-    width: 2px;
-    height: 30px;
-    background: #0b5ed7;
+  .tree{
+    display:inline-block;
+    padding: 0;
     margin: 0 auto;
   }
 
-  /* Pessoas */
-  .pessoas {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-    max-width: 1000px;
+  .tree ul{
+    padding-top: 18px;
+    position: relative;
+    padding-left: 0;
+    margin:0;
+    display:flex;
+    justify-content:center;
+    gap: 18px;           /* espaço horizontal entre irmãos */
   }
 
-  .pessoa {
-    border: 1px solid #0dcaf0;
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    background: #e6fbff;
+  .tree li{
+    list-style-type:none;
+    text-align:center;
+    position: relative;
+    padding: 18px 10px 0 10px; /* espaço para linha de cima */
+    margin:0;
   }
 
-  .vazio {
+  /* Linhas horizontais entre irmãos */
+  .tree li::before,
+  .tree li::after{
+    content:'';
+    position:absolute;
+    top:0;
+    right:50%;
+    border-top: 2px solid var(--line);
+    width:50%;
+    height:18px;
+  }
+  .tree li::after{
+    right:auto;
+    left:50%;
+    border-left: 2px solid var(--line);
+  }
+
+  /* remove linhas quando único filho */
+  .tree li:only-child::after,
+  .tree li:only-child::before{
+    display:none;
+  }
+
+  /* remove excesso nas bordas */
+  .tree li:first-child::before{ border:none; }
+  .tree li:last-child::after{ border:none; }
+
+  /* linha vertical descendo até o nó */
+  .tree li .node::before{
+    content:'';
+    position:absolute;
+    top:-18px;
+    left:50%;
+    transform:translateX(-50%);
+    border-left:2px solid var(--line);
+    width:0;
+    height:18px;
+  }
+
+  /* raiz não precisa da linha */
+  .tree > ul > li > .node::before{ display:none; }
+  .tree > ul > li::before,
+  .tree > ul > li::after{ display:none; }
+
+  /* ==========================
+     NODE (CAIXA)
+  ========================== */
+  .node{
+    position: relative;
+    background: var(--box-bg);
+    border: 2px solid var(--box-border);
+    border-radius: 10px;
+    min-width: 220px;
+    max-width: 280px;
+    padding: 10px 12px 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,.08);
+    display: inline-block;
+  }
+
+  .node-title{
+    font-weight: 900;
+    color: var(--blue-700);
+    font-size: 13px;
+    letter-spacing: .2px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .node-name{
+    font-weight: 900;
+    color: var(--blue-900);
+    font-size: 14px;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 6px;
+    justify-content:center;
+  }
+
+  .chip{
+    border:1px solid var(--chip-border);
+    background: var(--chip-bg);
+    border-radius: 999px;
+    padding: 5px 8px;
+    font-weight: 800;
+    font-size: 11px;
+    color:#053b4c;
+    white-space: nowrap;
+  }
+
+  .empty{
     font-style: italic;
-    color: #777;
-    font-size: 12px;
+    color:#667;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 4px 0;
   }
 
-  /* ====== IMPRESSÃO ====== */
-  @media print {
-    .acoes {
-      display: none;
-    }
+  /* deixa visual parecido com o da imagem: caixas mais retas e alinhadas */
+  .node{
+    border-radius: 8px;
+  }
 
-    @page {
+  /* ==========================
+     PRINT
+  ========================== */
+  @media print{
+    .acoes{ display:none !important; }
+    body{ padding: 0; }
+    .wrap{ overflow: visible !important; padding: 0; }
+    .tree{ transform: scale(.92); transform-origin: top center; } /* ajusta caber */
+    @page{
       size: A4 landscape;
-      margin: 15mm;
+      margin: 12mm;
+    }
+    .node{
+      box-shadow:none !important;
     }
   }
 </style>
@@ -101,81 +218,160 @@
 <body>
 
 <h1>Organograma Funcional</h1>
+<p class="sub" id="subtitulo">Carregando…</p>
 
 <div class="acoes">
   <button onclick="window.print()">Exportar para PDF</button>
 </div>
 
-<div id="organograma" class="organograma"></div>
+<div class="wrap">
+  <div id="tree" class="tree"></div>
+</div>
 
 <script>
   /* ============================
      URL DO APPS SCRIPT (JSONP)
   ============================ */
   const BASE =
-    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
+    "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
 
-  // Lê o filtro de posto vindo da URL
-  // ex: export.html?posto=SD
   const params = new URLSearchParams(window.location.search);
   const POSTO_FILTRO = params.get("posto") || "TODOS";
+  document.getElementById("subtitulo").textContent =
+    (POSTO_FILTRO === "TODOS")
+      ? "Exportação (Todos os postos)"
+      : `Exportação (Filtro: ${POSTO_FILTRO})`;
 
   const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
-  function cb(payload) {
-    montar(payload.hierarchy, payload.people);
+  function cb(payload){
+    if(!payload || payload.error){
+      document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
+      return;
+    }
+    renderTree(payload.hierarchy || [], payload.people || []);
   }
 
-  function montar(hierarchy, people) {
-    const container = document.getElementById("organograma");
-    container.innerHTML = "";
+  function renderTree(hierarchy, people){
+    // 1) Indexa pessoas por FUNÇÃO
+    const peopleByFunc = new Map();
+    people.forEach(p => {
+      if(!p || !p.func) return;
 
-    hierarchy.forEach(h => {
+      // aplica filtro por posto
+      if(POSTO_FILTRO !== "TODOS" && p.posto !== POSTO_FILTRO) return;
 
-      let pessoasFunc = people.filter(p => p.func === h.func);
-
-      // respeita filtro
-      if (POSTO_FILTRO !== "TODOS") {
-        pessoasFunc = pessoasFunc.filter(p => p.posto === POSTO_FILTRO);
-      }
-
-      // bloco da função
-      const blocoFunc = document.createElement("div");
-      blocoFunc.className = "funcao";
-      blocoFunc.textContent = "FUNÇÃO: " + h.func;
-
-      container.appendChild(blocoFunc);
-
-      // linha
-      const linha = document.createElement("div");
-      linha.className = "linha";
-      container.appendChild(linha);
-
-      // pessoas
-      const pessoasDiv = document.createElement("div");
-      pessoasDiv.className = "pessoas";
-
-      if (pessoasFunc.length === 0) {
-        const vazio = document.createElement("div");
-        vazio.className = "vazio";
-        vazio.textContent = "Sem pessoas cadastradas";
-        pessoasDiv.appendChild(vazio);
-      } else {
-        pessoasFunc.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "pessoa";
-          card.textContent = `${p.posto} - ${p.nome}`;
-          pessoasDiv.appendChild(card);
-        });
-      }
-
-      container.appendChild(pessoasDiv);
+      const key = String(p.func).trim();
+      if(!peopleByFunc.has(key)) peopleByFunc.set(key, []);
+      peopleByFunc.get(key).push(p);
     });
+
+    // 2) Monta mapa de nós (função -> {children:[]})
+    const nodeMap = new Map();
+    const getNode = (name) => {
+      const k = String(name || "").trim();
+      if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
+      return nodeMap.get(k);
+    };
+
+    // cria nós + ligações
+    hierarchy.forEach(h => {
+      const func = String(h.func || "").trim();
+      const sup  = String(h.sup  || "").trim();
+
+      if(!func) return;
+
+      const node = getNode(func);
+
+      if(sup){
+        const parent = getNode(sup);
+        parent.children.push(node);
+      }
+    });
+
+    // 3) Identifica raízes (nós que nunca aparecem como filho)
+    const childrenSet = new Set();
+    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
+
+    let roots = [];
+    nodeMap.forEach(n => {
+      if(!childrenSet.has(n.name)) roots.push(n);
+    });
+
+    // fallback: se nada em hierarchy, tenta criar “raízes” pelas funções das pessoas
+    if(roots.length === 0){
+      const funcs = [...new Set(people.map(p => p.func).filter(Boolean))];
+      roots = funcs.map(f => getNode(f));
+    }
+
+    // 4) Renderiza
+    const tree = document.getElementById("tree");
+    tree.innerHTML = "";
+
+    const topUl = document.createElement("ul");
+    roots.forEach(r => {
+      topUl.appendChild(renderNode(r, peopleByFunc));
+    });
+    tree.appendChild(topUl);
   }
 
-  // JSONP
+  function renderNode(node, peopleByFunc){
+    const li = document.createElement("li");
+
+    // caixa
+    const box = document.createElement("div");
+    box.className = "node";
+
+    const t1 = document.createElement("div");
+    t1.className = "node-title";
+    t1.textContent = "FUNÇÃO";
+
+    const t2 = document.createElement("div");
+    t2.className = "node-name";
+    t2.textContent = node.name;
+
+    box.appendChild(t1);
+    box.appendChild(t2);
+
+    const chips = document.createElement("div");
+    chips.className = "chips";
+
+    const pessoas = peopleByFunc.get(node.name) || [];
+    if(pessoas.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Sem pessoas cadastradas";
+      box.appendChild(empty);
+    } else {
+      pessoas.forEach(p => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = `${p.posto} - ${p.nome}`;
+        chips.appendChild(chip);
+      });
+      box.appendChild(chips);
+    }
+
+    li.appendChild(box);
+
+    // filhos
+    if(node.children && node.children.length){
+      const ul = document.createElement("ul");
+      node.children.forEach(child => {
+        ul.appendChild(renderNode(child, peopleByFunc));
+      });
+      li.appendChild(ul);
+    }
+
+    return li;
+  }
+
+  // JSONP inject
   const s = document.createElement("script");
   s.src = DATA_URL;
+  s.onerror = () => {
+    document.getElementById("subtitulo").textContent = "Erro ao carregar script de dados.";
+  };
   document.head.appendChild(s);
 </script>
 
