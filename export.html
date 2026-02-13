@@ -57,14 +57,14 @@
   }
   button:hover{ background:#094bb0; }
 
-  /* ==========================
-     ORG CHART (TREE)
-  ========================== */
   .wrap{
     overflow:auto;
     padding: 8px 6px 20px;
   }
 
+  /* ==========================
+     ORG CHART (TREE)
+  ========================== */
   .tree{
     display:inline-block;
     padding: 0;
@@ -78,18 +78,17 @@
     margin:0;
     display:flex;
     justify-content:center;
-    gap: 18px;           /* espaço horizontal entre irmãos */
+    gap: 18px;
   }
 
   .tree li{
     list-style-type:none;
     text-align:center;
     position: relative;
-    padding: 18px 10px 0 10px; /* espaço para linha de cima */
+    padding: 18px 10px 0 10px;
     margin:0;
   }
 
-  /* Linhas horizontais entre irmãos */
   .tree li::before,
   .tree li::after{
     content:'';
@@ -106,17 +105,14 @@
     border-left: 2px solid var(--line);
   }
 
-  /* remove linhas quando único filho */
   .tree li:only-child::after,
   .tree li:only-child::before{
     display:none;
   }
 
-  /* remove excesso nas bordas */
   .tree li:first-child::before{ border:none; }
   .tree li:last-child::after{ border:none; }
 
-  /* linha vertical descendo até o nó */
   .tree li .node::before{
     content:'';
     position:absolute;
@@ -128,7 +124,6 @@
     height:18px;
   }
 
-  /* raiz não precisa da linha */
   .tree > ul > li > .node::before{ display:none; }
   .tree > ul > li::before,
   .tree > ul > li::after{ display:none; }
@@ -140,9 +135,9 @@
     position: relative;
     background: var(--box-bg);
     border: 2px solid var(--box-border);
-    border-radius: 10px;
+    border-radius: 8px;
     min-width: 220px;
-    max-width: 280px;
+    max-width: 300px;
     padding: 10px 12px 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
@@ -191,26 +186,23 @@
     padding: 4px 0;
   }
 
-  /* deixa visual parecido com o da imagem: caixas mais retas e alinhadas */
-  .node{
-    border-radius: 8px;
+  .msg{
+    text-align:center;
+    font-weight:900;
+    color:#334;
+    padding: 18px 10px;
   }
 
-  /* ==========================
-     PRINT
-  ========================== */
   @media print{
     .acoes{ display:none !important; }
     body{ padding: 0; }
     .wrap{ overflow: visible !important; padding: 0; }
-    .tree{ transform: scale(.92); transform-origin: top center; } /* ajusta caber */
+    .tree{ transform: scale(.92); transform-origin: top center; }
     @page{
       size: A4 landscape;
       margin: 12mm;
     }
-    .node{
-      box-shadow:none !important;
-    }
+    .node{ box-shadow:none !important; }
   }
 </style>
 </head>
@@ -226,6 +218,7 @@
 
 <div class="wrap">
   <div id="tree" class="tree"></div>
+  <div id="msg" class="msg" style="display:none;"></div>
 </div>
 
 <script>
@@ -236,60 +229,81 @@
     "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
 
   const params = new URLSearchParams(window.location.search);
-  const POSTO_FILTRO = params.get("posto") || "TODOS";
+  const POSTO_FILTRO_RAW = params.get("posto") || "TODOS";
+
+  function norm(t){
+    return String(t || "")
+      .trim()
+      .toUpperCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  const POSTO_FILTRO = norm(POSTO_FILTRO_RAW);
+
   document.getElementById("subtitulo").textContent =
     (POSTO_FILTRO === "TODOS")
       ? "Exportação (Todos os postos)"
-      : `Exportação (Filtro: ${POSTO_FILTRO})`;
+      : `Exportação (Filtro: ${POSTO_FILTRO_RAW})`;
 
   const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
   function cb(payload){
     if(!payload || payload.error){
       document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
+      showMsg("Não foi possível carregar os dados.");
       return;
     }
     renderTree(payload.hierarchy || [], payload.people || []);
   }
 
+  function showMsg(text){
+    const msg = document.getElementById("msg");
+    msg.textContent = text;
+    msg.style.display = "block";
+  }
+
   function renderTree(hierarchy, people){
-    // 1) Indexa pessoas por FUNÇÃO
+    // 1) Pessoas por FUNÇÃO (já respeitando filtro, se houver)
     const peopleByFunc = new Map();
+
     people.forEach(p => {
       if(!p || !p.func) return;
 
-      // aplica filtro por posto
-      if(POSTO_FILTRO !== "TODOS" && p.posto !== POSTO_FILTRO) return;
+      // filtro por posto (normalizado)
+      if (POSTO_FILTRO !== "TODOS") {
+        if (norm(p.posto) !== POSTO_FILTRO) return;
+      }
 
       const key = String(p.func).trim();
       if(!peopleByFunc.has(key)) peopleByFunc.set(key, []);
       peopleByFunc.get(key).push(p);
     });
 
-    // 2) Monta mapa de nós (função -> {children:[]})
+    // 2) Nós e ligações
     const nodeMap = new Map();
     const getNode = (name) => {
       const k = String(name || "").trim();
+      if(!k) return null;
       if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
       return nodeMap.get(k);
     };
 
-    // cria nós + ligações
     hierarchy.forEach(h => {
       const func = String(h.func || "").trim();
       const sup  = String(h.sup  || "").trim();
-
       if(!func) return;
 
       const node = getNode(func);
+      if(!node) return;
 
       if(sup){
         const parent = getNode(sup);
-        parent.children.push(node);
+        if(parent) parent.children.push(node);
       }
     });
 
-    // 3) Identifica raízes (nós que nunca aparecem como filho)
+    // 3) Raízes
     const childrenSet = new Set();
     nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
@@ -298,27 +312,45 @@
       if(!childrenSet.has(n.name)) roots.push(n);
     });
 
-    // fallback: se nada em hierarchy, tenta criar “raízes” pelas funções das pessoas
+    // fallback se a hierarquia vier vazia
     if(roots.length === 0){
-      const funcs = [...new Set(people.map(p => p.func).filter(Boolean))];
-      roots = funcs.map(f => getNode(f));
+      const funcs = [...new Set(people.map(p => String(p.func||"").trim()).filter(Boolean))];
+      roots = funcs.map(f => getNode(f)).filter(Boolean);
     }
 
-    // 4) Renderiza
+    // 4) ✅ PRUNE (o que você pediu):
+    // se tem filtro, remove nós que não têm pessoas e nem filhos com pessoas
+    if (POSTO_FILTRO !== "TODOS") {
+      const keepNode = (node) => {
+        if(!node) return false;
+        node.children = (node.children || []).filter(ch => keepNode(ch));
+        const hasPeople = (peopleByFunc.get(node.name) || []).length > 0;
+        return hasPeople || node.children.length > 0;
+      };
+
+      roots = roots.filter(r => keepNode(r));
+    }
+
+    // Se depois do filtro não sobrou nada
+    if(!roots.length){
+      document.getElementById("tree").innerHTML = "";
+      showMsg("Nada encontrado para o filtro selecionado.");
+      return;
+    }
+
+    // 5) Render
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
+    document.getElementById("msg").style.display = "none";
 
     const topUl = document.createElement("ul");
-    roots.forEach(r => {
-      topUl.appendChild(renderNode(r, peopleByFunc));
-    });
+    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByFunc)));
     tree.appendChild(topUl);
   }
 
   function renderNode(node, peopleByFunc){
     const li = document.createElement("li");
 
-    // caixa
     const box = document.createElement("div");
     box.className = "node";
 
@@ -333,9 +365,6 @@
     box.appendChild(t1);
     box.appendChild(t2);
 
-    const chips = document.createElement("div");
-    chips.className = "chips";
-
     const pessoas = peopleByFunc.get(node.name) || [];
     if(pessoas.length === 0){
       const empty = document.createElement("div");
@@ -343,6 +372,8 @@
       empty.textContent = "Sem pessoas cadastradas";
       box.appendChild(empty);
     } else {
+      const chips = document.createElement("div");
+      chips.className = "chips";
       pessoas.forEach(p => {
         const chip = document.createElement("div");
         chip.className = "chip";
@@ -354,12 +385,9 @@
 
     li.appendChild(box);
 
-    // filhos
     if(node.children && node.children.length){
       const ul = document.createElement("ul");
-      node.children.forEach(child => {
-        ul.appendChild(renderNode(child, peopleByFunc));
-      });
+      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByFunc)));
       li.appendChild(ul);
     }
 
@@ -371,6 +399,7 @@
   s.src = DATA_URL;
   s.onerror = () => {
     document.getElementById("subtitulo").textContent = "Erro ao carregar script de dados.";
+    showMsg("Erro ao carregar o Web App (Apps Script).");
   };
   document.head.appendChild(s);
 </script>
