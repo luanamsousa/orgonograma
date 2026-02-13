@@ -185,6 +185,14 @@
   .btn-secondary:hover{
     background: #e6ebf3;
   }
+  .btn-danger{
+    background: #ef4444;
+    color: #fff;
+    box-shadow: none;
+  }
+  .btn-danger:hover{
+    background: #dc2626;
+  }
   .modal-body{
     padding: 18px;
     background: #fff;
@@ -248,7 +256,6 @@
     </select>
   </label>
 
-  <!-- Mantido: abre modal (funciona) -->
   <button onclick="abrirExport()">📄 Exportar PDF</button>
 </div>
 
@@ -461,7 +468,7 @@
   }
 
   /* ============================
-     EXPORT (sem mexer no resto)
+     EXPORT (no mesmo HTML)
   ============================ */
   function abrirExport() {
     if (!GLOBAL_DATA) return;
@@ -480,14 +487,14 @@
       sub.textContent = `Pré-visualização do PDF — Todos os postos`;
     }
 
-    // Preview (sem vazios)
+    // Preview mais "limpo" (sem vazios)
     renderOrganograma(preview, GLOBAL_DATA.hierarchy || [], people, {
       tituloPrefixo: "POSTO/GRADUAÇÃO: ",
       mostrarVazios: false,
       contarPessoas: true
     });
 
-    // Conteúdo que VAI para impressão
+    // Prepara área de impressão (o que vai pro PDF)
     const printSub = document.getElementById("printSubtitle");
     const printContent = document.getElementById("printContent");
 
@@ -508,39 +515,9 @@
     document.getElementById("exportModal").style.display = "none";
   }
 
-  // ✅ FIX DEFINITIVO: imprime somente depois que o printContent estiver pronto e "pintado"
   function imprimirPDF() {
-    // fecha modal (evita briga de renderização)
-    fecharExport();
-
-    const maxWaitMs = 6000;
-    const start = Date.now();
-
-    const wait = () => {
-      const printContent = document.getElementById("printContent");
-      const hasContent = printContent && printContent.children && printContent.children.length > 0;
-
-      if (!hasContent) {
-        if (Date.now() - start > maxWaitMs) {
-          alert("Não foi possível gerar o PDF: o conteúdo ainda não carregou.");
-          return;
-        }
-        requestAnimationFrame(wait);
-        return;
-      }
-
-      // força reflow/pintura
-      document.body.offsetHeight;
-
-      // espera 2 frames (garante que o @media print pegou o layout certo)
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.print();
-        });
-      });
-    };
-
-    wait();
+    // dá um tempinho pra garantir que o DOM do printArea está pronto
+    setTimeout(() => window.print(), 250);
   }
 
   // Fecha modal clicando no fundo
