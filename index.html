@@ -185,18 +185,6 @@
   .btn-secondary:hover{
     background: #e6ebf3;
   }
-  .btn-danger{
-    background: #ef4444;
-    color: #fff;
-    box-shadow: none;
-  }
-  .btn-danger:hover{
-    background: #dc2626;
-  }
-  .modal-body{
-    padding: 18px;
-    background: #fff;
-  }
 
   /* ========= Área de impressão ========= */
   #printArea{
@@ -256,7 +244,8 @@
     </select>
   </label>
 
-  <button onclick="abrirExport()">📄 Exportar PDF</button>
+  <!-- NÃO ABRE export.html: imprime no mesmo arquivo -->
+  <button onclick="exportarPDF()">📄 Exportar PDF</button>
 </div>
 
 <div id="organograma"></div>
@@ -478,7 +467,6 @@
     const sub = document.getElementById("exportSubtitle");
     const filtro = document.getElementById("filtroPosto").value;
 
-    // Dados filtrados
     let people = GLOBAL_DATA.people || [];
     if (filtro !== "TODOS") {
       people = people.filter(p => norm(p.posto) === filtro);
@@ -487,20 +475,18 @@
       sub.textContent = `Pré-visualização do PDF — Todos os postos`;
     }
 
-    // Preview mais "limpo" (sem vazios)
+    // Preview mais limpo (sem vazios)
     renderOrganograma(preview, GLOBAL_DATA.hierarchy || [], people, {
       tituloPrefixo: "POSTO/GRADUAÇÃO: ",
       mostrarVazios: false,
       contarPessoas: true
     });
 
-    // Prepara área de impressão (o que vai pro PDF)
+    // Prepara área de impressão
     const printSub = document.getElementById("printSubtitle");
     const printContent = document.getElementById("printContent");
 
-    printSub.textContent = (filtro !== "TODOS")
-      ? `Filtro: ${filtro}`
-      : `Todos os postos`;
+    printSub.textContent = (filtro !== "TODOS") ? `Filtro: ${filtro}` : `Todos os postos`;
 
     renderOrganograma(printContent, GLOBAL_DATA.hierarchy || [], people, {
       tituloPrefixo: "POSTO/GRADUAÇÃO: ",
@@ -516,8 +502,24 @@
   }
 
   function imprimirPDF() {
-    // dá um tempinho pra garantir que o DOM do printArea está pronto
-    setTimeout(() => window.print(), 250);
+    // Só imprime quando o conteúdo estiver pronto
+    const check = setInterval(() => {
+      const hasContent = document.getElementById("printContent")?.children?.length > 0;
+      if (hasContent) {
+        clearInterval(check);
+        fecharExport();
+        setTimeout(() => window.print(), 200);
+      }
+    }, 120);
+
+    setTimeout(() => clearInterval(check), 6000);
+  }
+
+  // Botão principal: abre modal + imprime (mesmo arquivo)
+  function exportarPDF() {
+    abrirExport();
+    // se a pessoa clicar direto no botão, imprime automaticamente também
+    setTimeout(() => imprimirPDF(), 250);
   }
 
   // Fecha modal clicando no fundo
