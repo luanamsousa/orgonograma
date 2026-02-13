@@ -185,6 +185,10 @@
   .btn-secondary:hover{
     background: #e6ebf3;
   }
+  .modal-body{
+    padding: 18px;
+    background: #fff;
+  }
 
   /* ========= Área de impressão ========= */
   #printArea{
@@ -244,8 +248,8 @@
     </select>
   </label>
 
-  <!-- NÃO ABRE export.html: imprime no mesmo arquivo -->
-  <button onclick="exportarPDF()">📄 Exportar PDF</button>
+  <!-- Mantido: abre modal (funciona) -->
+  <button onclick="abrirExport()">📄 Exportar PDF</button>
 </div>
 
 <div id="organograma"></div>
@@ -457,7 +461,7 @@
   }
 
   /* ============================
-     EXPORT (no mesmo HTML)
+     EXPORT (sem mexer no resto)
   ============================ */
   function abrirExport() {
     if (!GLOBAL_DATA) return;
@@ -467,6 +471,7 @@
     const sub = document.getElementById("exportSubtitle");
     const filtro = document.getElementById("filtroPosto").value;
 
+    // Dados filtrados
     let people = GLOBAL_DATA.people || [];
     if (filtro !== "TODOS") {
       people = people.filter(p => norm(p.posto) === filtro);
@@ -475,18 +480,20 @@
       sub.textContent = `Pré-visualização do PDF — Todos os postos`;
     }
 
-    // Preview mais limpo (sem vazios)
+    // Preview (sem vazios)
     renderOrganograma(preview, GLOBAL_DATA.hierarchy || [], people, {
       tituloPrefixo: "POSTO/GRADUAÇÃO: ",
       mostrarVazios: false,
       contarPessoas: true
     });
 
-    // Prepara área de impressão
+    // Conteúdo que VAI para impressão
     const printSub = document.getElementById("printSubtitle");
     const printContent = document.getElementById("printContent");
 
-    printSub.textContent = (filtro !== "TODOS") ? `Filtro: ${filtro}` : `Todos os postos`;
+    printSub.textContent = (filtro !== "TODOS")
+      ? `Filtro: ${filtro}`
+      : `Todos os postos`;
 
     renderOrganograma(printContent, GLOBAL_DATA.hierarchy || [], people, {
       tituloPrefixo: "POSTO/GRADUAÇÃO: ",
@@ -501,47 +508,39 @@
     document.getElementById("exportModal").style.display = "none";
   }
 
-function imprimirPDF() {
-  // 1) Fecha o modal para evitar “briga” de renderização
-  fecharExport();
+  // ✅ FIX DEFINITIVO: imprime somente depois que o printContent estiver pronto e "pintado"
+  function imprimirPDF() {
+    // fecha modal (evita briga de renderização)
+    fecharExport();
 
-  // 2) Espera o conteúdo realmente existir no printArea
-  const maxWaitMs = 6000;
-  const start = Date.now();
+    const maxWaitMs = 6000;
+    const start = Date.now();
 
-  const wait = () => {
-    const hasContent =
-      document.getElementById("printContent") &&
-      document.getElementById("printContent").children.length > 0;
+    const wait = () => {
+      const printContent = document.getElementById("printContent");
+      const hasContent = printContent && printContent.children && printContent.children.length > 0;
 
-    if (!hasContent) {
-      if (Date.now() - start > maxWaitMs) {
-        alert("Não foi possível gerar o PDF: o conteúdo ainda não carregou.");
+      if (!hasContent) {
+        if (Date.now() - start > maxWaitMs) {
+          alert("Não foi possível gerar o PDF: o conteúdo ainda não carregou.");
+          return;
+        }
+        requestAnimationFrame(wait);
         return;
       }
-      requestAnimationFrame(wait);
-      return;
-    }
 
-    // 3) Força reflow/pintura e só então imprime
-    document.body.offsetHeight; // força reflow
+      // força reflow/pintura
+      document.body.offsetHeight;
 
-    requestAnimationFrame(() => {
+      // espera 2 frames (garante que o @media print pegou o layout certo)
       requestAnimationFrame(() => {
-        window.print();
+        requestAnimationFrame(() => {
+          window.print();
+        });
       });
-    });
-  };
+    };
 
-  wait();
-}
-
-
-  // Botão principal: abre modal + imprime (mesmo arquivo)
-  function exportarPDF() {
-    abrirExport();
-    // se a pessoa clicar direto no botão, imprime automaticamente também
-    setTimeout(() => imprimirPDF(), 250);
+    wait();
   }
 
   // Fecha modal clicando no fundo
