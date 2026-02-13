@@ -501,19 +501,41 @@
     document.getElementById("exportModal").style.display = "none";
   }
 
-  function imprimirPDF() {
-    // Só imprime quando o conteúdo estiver pronto
-    const check = setInterval(() => {
-      const hasContent = document.getElementById("printContent")?.children?.length > 0;
-      if (hasContent) {
-        clearInterval(check);
-        fecharExport();
-        setTimeout(() => window.print(), 200);
-      }
-    }, 120);
+function imprimirPDF() {
+  // 1) Fecha o modal para evitar “briga” de renderização
+  fecharExport();
 
-    setTimeout(() => clearInterval(check), 6000);
-  }
+  // 2) Espera o conteúdo realmente existir no printArea
+  const maxWaitMs = 6000;
+  const start = Date.now();
+
+  const wait = () => {
+    const hasContent =
+      document.getElementById("printContent") &&
+      document.getElementById("printContent").children.length > 0;
+
+    if (!hasContent) {
+      if (Date.now() - start > maxWaitMs) {
+        alert("Não foi possível gerar o PDF: o conteúdo ainda não carregou.");
+        return;
+      }
+      requestAnimationFrame(wait);
+      return;
+    }
+
+    // 3) Força reflow/pintura e só então imprime
+    document.body.offsetHeight; // força reflow
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+      });
+    });
+  };
+
+  wait();
+}
+
 
   // Botão principal: abre modal + imprime (mesmo arquivo)
   function exportarPDF() {
