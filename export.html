@@ -17,11 +17,34 @@
     --chip-border:#86dff2;
   }
 
-  body{ margin:0; padding:18px 18px 28px; font-family: Arial, sans-serif; background:#fff; color: var(--blue-900); }
-  h1{ text-align:center; margin:0 0 6px 0; color: var(--blue-900); font-size: 22px; }
-  .sub{ text-align:center; margin:0 0 16px 0; font-weight:bold; color:#456; font-size: 12px; }
+  body{
+    margin:0;
+    padding:18px 18px 28px;
+    font-family: Arial, sans-serif;
+    background:#fff;
+    color: var(--blue-900);
+  }
 
-  .acoes{ text-align:center; margin: 10px 0 16px; }
+  h1{
+    text-align:center;
+    margin:0 0 6px 0;
+    color: var(--blue-900);
+    font-size: 22px;
+  }
+
+  .sub{
+    text-align:center;
+    margin:0 0 16px 0;
+    font-weight:bold;
+    color:#456;
+    font-size: 12px;
+  }
+
+  .acoes{
+    text-align:center;
+    margin: 10px 0 16px;
+  }
+
   button{
     background: var(--blue-700);
     color:#fff;
@@ -34,8 +57,18 @@
   }
   button:hover{ background:#094bb0; }
 
-  .wrap{ overflow:auto; padding: 8px 6px 20px; display:flex; justify-content:center; }
-  .tree{ display:inline-block; padding: 0; margin: 0 auto; }
+  .wrap{
+    overflow:auto;
+    padding: 8px 6px 20px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .tree{
+    display:inline-block;
+    padding: 0;
+    margin: 0 auto;
+  }
 
   .tree ul{
     padding-top: 18px;
@@ -46,6 +79,7 @@
     justify-content:center;
     gap: 18px;
   }
+
   .tree li{
     list-style-type:none;
     text-align:center;
@@ -72,6 +106,7 @@
 
   .tree li:only-child::after,
   .tree li:only-child::before{ display:none; }
+
   .tree li:first-child::before{ border:none; }
   .tree li:last-child::after{ border:none; }
 
@@ -94,9 +129,9 @@
     position: relative;
     background: var(--box-bg);
     border: 2px solid var(--box-border);
-    border-radius: 10px;
+    border-radius: 12px;
     min-width: 240px;
-    max-width: 360px;
+    max-width: 420px;
     padding: 12px 14px 14px;
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
@@ -145,7 +180,12 @@
     padding: 4px 0;
   }
 
-  .msg{ text-align:center; font-weight:900; color:#334; padding: 18px 10px; }
+  .msg{
+    text-align:center;
+    font-weight:900;
+    color:#334;
+    padding: 18px 10px;
+  }
 
   @media print{
     .acoes{ display:none !important; }
@@ -172,19 +212,23 @@
 </div>
 
 <script>
-  // ✅ Sua URL /exec
+  // ✅ SUA URL /exec (troque se mudar de implantação)
   const BASE =
     "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
 
+  // seu index manda ?posto=...
   const params = new URLSearchParams(window.location.search);
-  const FILTRO_RAW = params.get("posto") || "TODOS"; // (mantive "posto" pq seu index manda assim)
+  const FILTRO_RAW = params.get("posto") || "TODOS";
 
+  // normalizador forte (remove acento, troca º/° etc, remove espaços duplicados)
   function norm(t){
     return String(t || "")
       .trim()
       .toUpperCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[º°]/g, "O")           // 2º / 2° -> 2O (padroniza)
+      .replace(/\s+/g, " ");          // espaços duplos
   }
 
   const FILTRO = norm(FILTRO_RAW);
@@ -199,7 +243,7 @@
   function cb(payload){
     if(!payload || payload.error){
       document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
-      showMsg("Não foi possível carregar os dados.");
+      showMsg("Não foi possível carregar os dados do Apps Script.");
       return;
     }
     renderTree(payload.hierarchy || [], payload.people || []);
@@ -211,10 +255,9 @@
     msg.style.display = "block";
   }
 
-  // ✅ aqui está o conserto do filtro (FUNCIONA com seu payload mesmo “trocado”)
   function renderTree(hierarchy, people){
 
-    // 1) Descobre qual campo (posto ou func) casa melhor com a hierarquia
+    // ===== 1) Descobre qual campo é o "nível" (CEL/TCEL/MAJ...)
     const hierSet = new Set(hierarchy.map(h => norm(h.func)));
     const match = { posto:0, func:0 };
 
@@ -224,64 +267,69 @@
       if (hierSet.has(norm(p.func)))  match.func++;
     });
 
-    // rankKey = campo que representa o NÍVEL (CEL, TCEL, MAJ...)
+    // rankKey = campo que representa o NÍVEL
     const rankKey = (match.func >= match.posto) ? "func" : "posto";
-    // filterKey = o outro campo (normalmente CONDUTOR, MEMBRO DE GUARNIÇÃO...)
+    // filterKey = outro campo (onde está CONDUTOR, MEMBRO DE GUARNIÇÃO, etc.)
     const filterKey = (rankKey === "func") ? "posto" : "func";
 
-    // 2) Agrupa pessoas por NÍVEL (rankKey), aplicando filtro no filterKey
+    // ===== 2) Agrupa pessoas por NÍVEL (CHAVE NORMALIZADA!)
     const peopleByRank = new Map();
 
     people.forEach(p => {
       if(!p) return;
-      const rank = String(p[rankKey] || "").trim();
-      if(!rank) return;
 
-      // aplica filtro
+      const rankRaw = String(p[rankKey] || "").trim();
+      const rankNorm = norm(rankRaw);
+      if(!rankNorm) return;
+
+      // aplica filtro no campo certo
       if (FILTRO !== "TODOS") {
         if (norm(p[filterKey]) !== FILTRO) return;
       }
 
-      if(!peopleByRank.has(rank)) peopleByRank.set(rank, []);
-      peopleByRank.get(rank).push(p);
+      if(!peopleByRank.has(rankNorm)) peopleByRank.set(rankNorm, []);
+      peopleByRank.get(rankNorm).push(p);
     });
 
-    // 3) Monta árvore da hierarquia
+    // ===== 3) Monta árvore da hierarquia (também normalizada internamente)
     const nodeMap = new Map();
+
     const getNode = (name) => {
-      const k = String(name || "").trim();
-      if(!k) return null;
-      if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
-      return nodeMap.get(k);
+      const raw = String(name || "").trim();
+      const key = norm(raw);
+      if(!key) return null;
+
+      if(!nodeMap.has(key)) nodeMap.set(key, { key, name: raw, children:[] });
+      return nodeMap.get(key);
     };
 
     hierarchy.forEach(h => {
-      const func = String(h.func || "").trim();
-      const sup  = String(h.sup  || "").trim();
-      if(!func) return;
+      const funcRaw = String(h.func || "").trim();
+      const supRaw  = String(h.sup  || "").trim();
+      if(!funcRaw) return;
 
-      const node = getNode(func);
+      const node = getNode(funcRaw);
       if(!node) return;
 
-      if(sup){
-        const parent = getNode(sup);
+      if(supRaw){
+        const parent = getNode(supRaw);
         if(parent) parent.children.push(node);
       }
     });
 
     // raízes
     const childrenSet = new Set();
-    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
+    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.key)));
 
     let roots = [];
-    nodeMap.forEach(n => { if(!childrenSet.has(n.name)) roots.push(n); });
+    nodeMap.forEach(n => { if(!childrenSet.has(n.key)) roots.push(n); });
 
     if(!roots.length){
       showMsg("Não há hierarquia para exportar.");
       return;
     }
 
-    // 4) Render (sempre mostra todas as funções, mesmo vazias)
+    // ===== 4) Render (sempre mostra todas as funções)
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
     document.getElementById("msg").style.display = "none";
@@ -308,7 +356,8 @@
     box.appendChild(t1);
     box.appendChild(t2);
 
-    const pessoas = peopleByRank.get(node.name) || [];
+    // ✅ pega por chave normalizada
+    const pessoas = peopleByRank.get(norm(node.name)) || [];
 
     if(pessoas.length === 0){
       const empty = document.createElement("div");
@@ -318,13 +367,14 @@
     } else {
       const chips = document.createElement("div");
       chips.className = "chips";
+
       pessoas.forEach(p => {
         const chip = document.createElement("div");
         chip.className = "chip";
-        // aqui eu mostro “posto - nome” do jeito que você já usa
         chip.textContent = `${p.posto} - ${p.nome}`;
         chips.appendChild(chip);
       });
+
       box.appendChild(chips);
     }
 
@@ -339,6 +389,7 @@
     return li;
   }
 
+  // injeta jsonp
   const s = document.createElement("script");
   s.src = DATA_URL;
   s.onerror = () => {
