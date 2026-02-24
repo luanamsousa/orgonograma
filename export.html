@@ -34,9 +34,9 @@
   }
   button:hover{ background:#094bb0; }
 
-  .wrap{ overflow:auto; padding: 8px 6px 20px; display:flex; justify-content:center; }
-  .tree{ display:inline-block; padding: 0; margin: 0 auto; }
+  .wrap{ overflow:auto; padding: 8px 6px 20px; }
 
+  .tree{ display:inline-block; padding: 0; margin: 0 auto; }
   .tree ul{
     padding-top: 18px;
     position: relative;
@@ -72,6 +72,7 @@
 
   .tree li:only-child::after,
   .tree li:only-child::before{ display:none; }
+
   .tree li:first-child::before{ border:none; }
   .tree li:last-child::after{ border:none; }
 
@@ -94,10 +95,10 @@
     position: relative;
     background: var(--box-bg);
     border: 2px solid var(--box-border);
-    border-radius: 10px;
-    min-width: 240px;
-    max-width: 360px;
-    padding: 12px 14px 14px;
+    border-radius: 8px;
+    min-width: 220px;
+    max-width: 300px;
+    padding: 10px 12px 12px;
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
   }
@@ -115,14 +116,14 @@
     font-weight: 900;
     color: var(--blue-900);
     font-size: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     line-height: 1.1;
   }
 
   .chips{
     display:flex;
     flex-wrap:wrap;
-    gap: 7px;
+    gap: 6px;
     justify-content:center;
   }
 
@@ -130,7 +131,7 @@
     border:1px solid var(--chip-border);
     background: var(--chip-bg);
     border-radius: 999px;
-    padding: 6px 10px;
+    padding: 5px 8px;
     font-weight: 800;
     font-size: 11px;
     color:#053b4c;
@@ -150,7 +151,7 @@
   @media print{
     .acoes{ display:none !important; }
     body{ padding: 0; }
-    .wrap{ overflow: visible !important; padding: 0; display:block; }
+    .wrap{ overflow: visible !important; padding: 0; }
     .tree{ transform: scale(.92); transform-origin: top center; }
     @page{ size: A4 landscape; margin: 12mm; }
     .node{ box-shadow:none !important; }
@@ -159,6 +160,7 @@
 </head>
 
 <body>
+
 <h1>Organograma Funcional</h1>
 <p class="sub" id="subtitulo">Carregando…</p>
 
@@ -172,12 +174,12 @@
 </div>
 
 <script>
-  // ✅ Sua URL /exec
+  // ⚠️ TROQUE pela sua URL /exec atual
   const BASE =
     "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
 
   const params = new URLSearchParams(window.location.search);
-  const FILTRO_RAW = params.get("posto") || "TODOS"; // (mantive "posto" pq seu index manda assim)
+  const POSTO_FILTRO_RAW = params.get("posto") || "TODOS";
 
   function norm(t){
     return String(t || "")
@@ -187,12 +189,12 @@
       .replace(/[\u0300-\u036f]/g, "");
   }
 
-  const FILTRO = norm(FILTRO_RAW);
+  const POSTO_FILTRO = norm(POSTO_FILTRO_RAW);
 
   document.getElementById("subtitulo").textContent =
-    (FILTRO === "TODOS")
+    (POSTO_FILTRO === "TODOS")
       ? "Exportação (Todos os postos)"
-      : `Exportação (Filtro: ${FILTRO_RAW})`;
+      : `Exportação (Filtro: ${POSTO_FILTRO_RAW})`;
 
   const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
 
@@ -211,42 +213,23 @@
     msg.style.display = "block";
   }
 
-  // ✅ aqui está o conserto do filtro (FUNCIONA com seu payload mesmo “trocado”)
   function renderTree(hierarchy, people){
-
-    // 1) Descobre qual campo (posto ou func) casa melhor com a hierarquia
-    const hierSet = new Set(hierarchy.map(h => norm(h.func)));
-    const match = { posto:0, func:0 };
+    // Pessoas por função (aplica filtro só nas pessoas)
+    const peopleByFunc = new Map();
 
     people.forEach(p => {
-      if (!p) return;
-      if (hierSet.has(norm(p.posto))) match.posto++;
-      if (hierSet.has(norm(p.func)))  match.func++;
-    });
+      if(!p || !p.func) return;
 
-    // rankKey = campo que representa o NÍVEL (CEL, TCEL, MAJ...)
-    const rankKey = (match.func >= match.posto) ? "func" : "posto";
-    // filterKey = o outro campo (normalmente CONDUTOR, MEMBRO DE GUARNIÇÃO...)
-    const filterKey = (rankKey === "func") ? "posto" : "func";
-
-    // 2) Agrupa pessoas por NÍVEL (rankKey), aplicando filtro no filterKey
-    const peopleByRank = new Map();
-
-    people.forEach(p => {
-      if(!p) return;
-      const rank = String(p[rankKey] || "").trim();
-      if(!rank) return;
-
-      // aplica filtro
-      if (FILTRO !== "TODOS") {
-        if (norm(p[filterKey]) !== FILTRO) return;
+      if (POSTO_FILTRO !== "TODOS") {
+        if (norm(p.posto) !== POSTO_FILTRO) return;
       }
 
-      if(!peopleByRank.has(rank)) peopleByRank.set(rank, []);
-      peopleByRank.get(rank).push(p);
+      const key = String(p.func).trim();
+      if(!peopleByFunc.has(key)) peopleByFunc.set(key, []);
+      peopleByFunc.get(key).push(p);
     });
 
-    // 3) Monta árvore da hierarquia
+    // Monta nós
     const nodeMap = new Map();
     const getNode = (name) => {
       const k = String(name || "").trim();
@@ -274,24 +257,33 @@
     nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
     let roots = [];
-    nodeMap.forEach(n => { if(!childrenSet.has(n.name)) roots.push(n); });
+    nodeMap.forEach(n => {
+      if(!childrenSet.has(n.name)) roots.push(n);
+    });
+
+    // fallback se hierarquia vazia
+    if(roots.length === 0){
+      const funcs = [...new Set(people.map(p => String(p.func||"").trim()).filter(Boolean))];
+      roots = funcs.map(f => getNode(f)).filter(Boolean);
+    }
 
     if(!roots.length){
-      showMsg("Não há hierarquia para exportar.");
+      document.getElementById("tree").innerHTML = "";
+      showMsg("Não há dados para exportar.");
       return;
     }
 
-    // 4) Render (sempre mostra todas as funções, mesmo vazias)
+    // Render
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
     document.getElementById("msg").style.display = "none";
 
     const topUl = document.createElement("ul");
-    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByRank)));
+    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByFunc)));
     tree.appendChild(topUl);
   }
 
-  function renderNode(node, peopleByRank){
+  function renderNode(node, peopleByFunc){
     const li = document.createElement("li");
 
     const box = document.createElement("div");
@@ -308,8 +300,7 @@
     box.appendChild(t1);
     box.appendChild(t2);
 
-    const pessoas = peopleByRank.get(node.name) || [];
-
+    const pessoas = peopleByFunc.get(node.name) || [];
     if(pessoas.length === 0){
       const empty = document.createElement("div");
       empty.className = "empty";
@@ -321,7 +312,6 @@
       pessoas.forEach(p => {
         const chip = document.createElement("div");
         chip.className = "chip";
-        // aqui eu mostro “posto - nome” do jeito que você já usa
         chip.textContent = `${p.posto} - ${p.nome}`;
         chips.appendChild(chip);
       });
@@ -332,7 +322,7 @@
 
     if(node.children && node.children.length){
       const ul = document.createElement("ul");
-      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByRank)));
+      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByFunc)));
       li.appendChild(ul);
     }
 
