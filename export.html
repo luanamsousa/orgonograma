@@ -9,7 +9,6 @@
   :root{
     --blue-900:#0b2b45;
     --blue-700:#0b5ed7;
-    --blue-500:#0dcaf0;
     --line:#9db8d3;
     --box-bg:#eef6ff;
     --box-border:#7fb0ff;
@@ -57,11 +56,13 @@
   }
   button:hover{ background:#094bb0; }
 
+  /* ✅ Centraliza o organograma */
   .wrap{
-    overflow:auto;
-    padding: 8px 6px 20px;
     display:flex;
     justify-content:center;
+    align-items:flex-start;
+    width:100%;
+    padding: 8px 6px 20px;
   }
 
   .tree{
@@ -70,6 +71,10 @@
     margin: 0 auto;
   }
 
+  /* ==========
+     ÁRVORE
+     (ul/li)
+  ========== */
   .tree ul{
     padding-top: 18px;
     position: relative;
@@ -110,6 +115,7 @@
   .tree li:first-child::before{ border:none; }
   .tree li:last-child::after{ border:none; }
 
+  /* linha vertical do pai para o nó */
   .tree li .node::before{
     content:'';
     position:absolute;
@@ -121,18 +127,22 @@
     height:18px;
   }
 
+  /* remove a linha vertical do topo (raiz) */
   .tree > ul > li > .node::before{ display:none; }
   .tree > ul > li::before,
   .tree > ul > li::after{ display:none; }
 
+  /* ==========
+     NODE (CAIXA)
+  ========== */
   .node{
     position: relative;
     background: var(--box-bg);
     border: 2px solid var(--box-border);
-    border-radius: 12px;
+    border-radius: 10px;
     min-width: 240px;
-    max-width: 420px;
-    padding: 12px 14px 14px;
+    max-width: 360px;
+    padding: 12px 12px 14px;
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
   }
@@ -157,7 +167,7 @@
   .chips{
     display:flex;
     flex-wrap:wrap;
-    gap: 7px;
+    gap: 6px;
     justify-content:center;
   }
 
@@ -165,7 +175,7 @@
     border:1px solid var(--chip-border);
     background: var(--chip-bg);
     border-radius: 999px;
-    padding: 6px 10px;
+    padding: 5px 9px;
     font-weight: 800;
     font-size: 11px;
     color:#053b4c;
@@ -187,18 +197,22 @@
     padding: 18px 10px;
   }
 
+  /* ==========
+     IMPRESSÃO
+  ========== */
   @media print{
     .acoes{ display:none !important; }
     body{ padding: 0; }
-    .wrap{ overflow: visible !important; padding: 0; display:block; }
-    .tree{ transform: scale(.92); transform-origin: top center; }
+    .wrap{ overflow: visible !important; padding: 0; }
     @page{ size: A4 landscape; margin: 12mm; }
+    .tree{ transform: scale(.92); transform-origin: top center; }
     .node{ box-shadow:none !important; }
   }
 </style>
 </head>
 
 <body>
+
 <h1>Organograma Funcional</h1>
 <p class="sub" id="subtitulo">Carregando…</p>
 
@@ -212,23 +226,30 @@
 </div>
 
 <script>
-  // ✅ SUA URL /exec (troque se mudar de implantação)
+  /* ============================
+     URL DO APPS SCRIPT (JSONP)
+     ✅ TROQUE pela sua /exec atual
+  ============================ */
   const BASE =
-    "https://script.google.com/macros/s/AKfycbzfYOs-nwQrn28CKY_OR4FiXMb2SfF5skBHRsu_w_eNFxIHMBCofehTRPppUqf7pli3IQ/exec";
+    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
-  // seu index manda ?posto=...
+  /* ============================
+     LÊ O FILTRO DA URL (robusto)
+  ============================ */
   const params = new URLSearchParams(window.location.search);
-  const FILTRO_RAW = params.get("posto") || "TODOS";
+  const FILTRO_RAW =
+    params.get("posto") ||
+    params.get("filtro") ||
+    params.get("p") ||
+    "TODOS";
 
-  // normalizador forte (remove acento, troca º/° etc, remove espaços duplicados)
   function norm(t){
-    return String(t || "")
+    return String(t ?? "")
+      .replace(/\s+/g, " ")
       .trim()
       .toUpperCase()
       .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[º°]/g, "O")           // 2º / 2° -> 2O (padroniza)
-      .replace(/\s+/g, " ");          // espaços duplos
+      .replace(/[\u0300-\u036f]/g, "");
   }
 
   const FILTRO = norm(FILTRO_RAW);
@@ -238,15 +259,25 @@
       ? "Exportação (Todos os postos)"
       : `Exportação (Filtro: ${FILTRO_RAW})`;
 
-  const DATA_URL = BASE + "?mode=data&callback=cb&_=" + Date.now();
+  /* ============================
+     JSONP
+  ============================ */
+  const CALLBACK = "cb_export_" + Date.now(); // evita conflito
+  const DATA_URL = BASE + "?mode=data&callback=" + CALLBACK + "&_=" + Date.now();
 
-  function cb(payload){
-    if(!payload || payload.error){
-      document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
-      showMsg("Não foi possível carregar os dados do Apps Script.");
-      return;
+  window[CALLBACK] = function(payload){
+    try{
+      if(!payload || payload.error){
+        document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
+        showMsg("Não foi possível carregar os dados.");
+        return;
+      }
+      renderTree(payload.hierarchy || [], payload.people || []);
+    } catch(err){
+      console.error(err);
+      document.getElementById("subtitulo").textContent = "Erro ao processar dados.";
+      showMsg("Ocorreu um erro ao montar o organograma.");
     }
-    renderTree(payload.hierarchy || [], payload.people || []);
   }
 
   function showMsg(text){
@@ -255,91 +286,81 @@
     msg.style.display = "block";
   }
 
+  /* ============================
+     MONTA A ÁRVORE
+  ============================ */
   function renderTree(hierarchy, people){
+    // ✅ 1) Filtra pessoas (ANTES de montar map)
+    const peopleFiltered = (FILTRO === "TODOS")
+      ? (people || [])
+      : (people || []).filter(p => norm(p?.posto) === FILTRO);
 
-    // ===== 1) Descobre qual campo é o "nível" (CEL/TCEL/MAJ...)
-    const hierSet = new Set(hierarchy.map(h => norm(h.func)));
-    const match = { posto:0, func:0 };
-
-    people.forEach(p => {
-      if (!p) return;
-      if (hierSet.has(norm(p.posto))) match.posto++;
-      if (hierSet.has(norm(p.func)))  match.func++;
+    // ✅ 2) Pessoas por função (somente filtradas)
+    const peopleByFunc = new Map();
+    peopleFiltered.forEach(p => {
+      const f = String(p?.func || "").trim();
+      if(!f) return;
+      if(!peopleByFunc.has(f)) peopleByFunc.set(f, []);
+      peopleByFunc.get(f).push(p);
     });
 
-    // rankKey = campo que representa o NÍVEL
-    const rankKey = (match.func >= match.posto) ? "func" : "posto";
-    // filterKey = outro campo (onde está CONDUTOR, MEMBRO DE GUARNIÇÃO, etc.)
-    const filterKey = (rankKey === "func") ? "posto" : "func";
-
-    // ===== 2) Agrupa pessoas por NÍVEL (CHAVE NORMALIZADA!)
-    const peopleByRank = new Map();
-
-    people.forEach(p => {
-      if(!p) return;
-
-      const rankRaw = String(p[rankKey] || "").trim();
-      const rankNorm = norm(rankRaw);
-      if(!rankNorm) return;
-
-      // aplica filtro no campo certo
-      if (FILTRO !== "TODOS") {
-        if (norm(p[filterKey]) !== FILTRO) return;
-      }
-
-      if(!peopleByRank.has(rankNorm)) peopleByRank.set(rankNorm, []);
-      peopleByRank.get(rankNorm).push(p);
-    });
-
-    // ===== 3) Monta árvore da hierarquia (também normalizada internamente)
+    // ✅ 3) Monta nós da hierarquia (todas as funções SEMPRE)
     const nodeMap = new Map();
-
     const getNode = (name) => {
-      const raw = String(name || "").trim();
-      const key = norm(raw);
-      if(!key) return null;
-
-      if(!nodeMap.has(key)) nodeMap.set(key, { key, name: raw, children:[] });
-      return nodeMap.get(key);
+      const k = String(name || "").trim();
+      if(!k) return null;
+      if(!nodeMap.has(k)) nodeMap.set(k, { name:k, children:[] });
+      return nodeMap.get(k);
     };
 
-    hierarchy.forEach(h => {
-      const funcRaw = String(h.func || "").trim();
-      const supRaw  = String(h.sup  || "").trim();
-      if(!funcRaw) return;
+    (hierarchy || []).forEach(h => {
+      const func = String(h?.func || "").trim();
+      const sup  = String(h?.sup  || "").trim();
+      if(!func) return;
 
-      const node = getNode(funcRaw);
+      const node = getNode(func);
       if(!node) return;
 
-      if(supRaw){
-        const parent = getNode(supRaw);
-        if(parent) parent.children.push(node);
+      if(sup){
+        const parent = getNode(sup);
+        if(parent && !parent.children.some(c => c.name === node.name)){
+          parent.children.push(node);
+        }
       }
     });
 
-    // raízes
+    // ✅ 4) Descobre raízes (hierarquia completa)
     const childrenSet = new Set();
-    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.key)));
+    nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
     let roots = [];
-    nodeMap.forEach(n => { if(!childrenSet.has(n.key)) roots.push(n); });
+    nodeMap.forEach(n => {
+      if(!childrenSet.has(n.name)) roots.push(n);
+    });
+
+    // fallback se vier hierarquia vazia
+    if(roots.length === 0){
+      const funcs = [...new Set((hierarchy || []).map(h => String(h?.func||"").trim()).filter(Boolean))];
+      roots = funcs.map(f => getNode(f)).filter(Boolean);
+    }
 
     if(!roots.length){
-      showMsg("Não há hierarquia para exportar.");
+      document.getElementById("tree").innerHTML = "";
+      showMsg("Não há dados para exportar.");
       return;
     }
 
-    // ===== 4) Render (sempre mostra todas as funções)
+    // ✅ 5) Render
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
     document.getElementById("msg").style.display = "none";
 
     const topUl = document.createElement("ul");
-    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByRank)));
+    roots.forEach(r => topUl.appendChild(renderNode(r, peopleByFunc)));
     tree.appendChild(topUl);
   }
 
-  function renderNode(node, peopleByRank){
+  function renderNode(node, peopleByFunc){
     const li = document.createElement("li");
 
     const box = document.createElement("div");
@@ -356,8 +377,7 @@
     box.appendChild(t1);
     box.appendChild(t2);
 
-    // ✅ pega por chave normalizada
-    const pessoas = peopleByRank.get(norm(node.name)) || [];
+    const pessoas = peopleByFunc.get(node.name) || [];
 
     if(pessoas.length === 0){
       const empty = document.createElement("div");
@@ -367,14 +387,12 @@
     } else {
       const chips = document.createElement("div");
       chips.className = "chips";
-
       pessoas.forEach(p => {
         const chip = document.createElement("div");
         chip.className = "chip";
         chip.textContent = `${p.posto} - ${p.nome}`;
         chips.appendChild(chip);
       });
-
       box.appendChild(chips);
     }
 
@@ -382,14 +400,14 @@
 
     if(node.children && node.children.length){
       const ul = document.createElement("ul");
-      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByRank)));
+      node.children.forEach(child => ul.appendChild(renderNode(child, peopleByFunc)));
       li.appendChild(ul);
     }
 
     return li;
   }
 
-  // injeta jsonp
+  // Inject JSONP
   const s = document.createElement("script");
   s.src = DATA_URL;
   s.onerror = () => {
