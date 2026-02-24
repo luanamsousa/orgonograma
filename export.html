@@ -16,43 +16,125 @@
     --chip-border:#86dff2;
   }
 
-  body{ margin:0; padding:18px 18px 28px; font-family: Arial, sans-serif; background:#fff; color: var(--blue-900); }
-  h1{ text-align:center; margin:0 0 6px 0; font-size:22px; }
-  .sub{ text-align:center; margin:0 0 16px 0; font-weight:bold; color:#456; font-size:12px; }
+  body{
+    margin:0;
+    padding:18px 18px 28px;
+    font-family: Arial, sans-serif;
+    background:#fff;
+    color: var(--blue-900);
+  }
 
-  .acoes{ text-align:center; margin: 10px 0 16px; }
+  h1{
+    text-align:center;
+    margin:0 0 6px 0;
+    color: var(--blue-900);
+    font-size: 22px;
+  }
+
+  .sub{
+    text-align:center;
+    margin:0 0 16px 0;
+    font-weight:bold;
+    color:#456;
+    font-size: 12px;
+  }
+
+  .acoes{
+    text-align:center;
+    margin: 10px 0 16px;
+  }
+
   button{
     background: var(--blue-700);
-    color:#fff; border:none;
-    padding:10px 16px; border-radius:10px;
-    font-weight:bold; cursor:pointer;
+    color:#fff;
+    border:none;
+    padding:10px 16px;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
     box-shadow: 0 8px 18px rgba(11,94,215,.18);
   }
   button:hover{ background:#094bb0; }
 
-  .wrap{ display:flex; justify-content:center; align-items:flex-start; width:100%; padding: 8px 6px 20px; }
-  .tree{ display:inline-block; margin:0 auto; }
-
-  .tree ul{ padding-top: 18px; position: relative; padding-left: 0; margin:0; display:flex; justify-content:center; gap: 18px; }
-  .tree li{ list-style:none; text-align:center; position: relative; padding: 18px 10px 0 10px; margin:0; }
-
-  .tree li::before, .tree li::after{
-    content:''; position:absolute; top:0; right:50%;
-    border-top: 2px solid var(--line); width:50%; height:18px;
+  /* ✅ Centraliza o organograma */
+  .wrap{
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    width:100%;
+    padding: 8px 6px 20px;
   }
-  .tree li::after{ right:auto; left:50%; border-left: 2px solid var(--line); }
-  .tree li:only-child::after, .tree li:only-child::before{ display:none; }
+
+  .tree{
+    display:inline-block;
+    padding: 0;
+    margin: 0 auto;
+  }
+
+  /* ==========
+     ÁRVORE
+     (ul/li)
+  ========== */
+  .tree ul{
+    padding-top: 18px;
+    position: relative;
+    padding-left: 0;
+    margin:0;
+    display:flex;
+    justify-content:center;
+    gap: 18px;
+  }
+
+  .tree li{
+    list-style-type:none;
+    text-align:center;
+    position: relative;
+    padding: 18px 10px 0 10px;
+    margin:0;
+  }
+
+  .tree li::before,
+  .tree li::after{
+    content:'';
+    position:absolute;
+    top:0;
+    right:50%;
+    border-top: 2px solid var(--line);
+    width:50%;
+    height:18px;
+  }
+  .tree li::after{
+    right:auto;
+    left:50%;
+    border-left: 2px solid var(--line);
+  }
+
+  .tree li:only-child::after,
+  .tree li:only-child::before{ display:none; }
+
   .tree li:first-child::before{ border:none; }
   .tree li:last-child::after{ border:none; }
 
+  /* linha vertical do pai para o nó */
   .tree li .node::before{
-    content:''; position:absolute; top:-18px; left:50%;
+    content:'';
+    position:absolute;
+    top:-18px;
+    left:50%;
     transform:translateX(-50%);
-    border-left:2px solid var(--line); width:0; height:18px;
+    border-left:2px solid var(--line);
+    width:0;
+    height:18px;
   }
-  .tree > ul > li > .node::before{ display:none; }
-  .tree > ul > li::before, .tree > ul > li::after{ display:none; }
 
+  /* remove a linha vertical do topo (raiz) */
+  .tree > ul > li > .node::before{ display:none; }
+  .tree > ul > li::before,
+  .tree > ul > li::after{ display:none; }
+
+  /* ==========
+     NODE (CAIXA)
+  ========== */
   .node{
     position: relative;
     background: var(--box-bg);
@@ -64,10 +146,31 @@
     box-shadow: 0 8px 20px rgba(0,0,0,.08);
     display: inline-block;
   }
-  .node-title{ font-weight: 900; color: var(--blue-700); font-size: 13px; text-transform: uppercase; margin-bottom: 6px; }
-  .node-name{ font-weight: 900; color: var(--blue-900); font-size: 14px; margin-bottom: 10px; }
 
-  .chips{ display:flex; flex-wrap:wrap; gap: 6px; justify-content:center; }
+  .node-title{
+    font-weight: 900;
+    color: var(--blue-700);
+    font-size: 13px;
+    letter-spacing: .2px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .node-name{
+    font-weight: 900;
+    color: var(--blue-900);
+    font-size: 14px;
+    margin-bottom: 10px;
+    line-height: 1.1;
+  }
+
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 6px;
+    justify-content:center;
+  }
+
   .chip{
     border:1px solid var(--chip-border);
     background: var(--chip-bg);
@@ -78,14 +181,29 @@
     color:#053b4c;
     white-space: nowrap;
   }
-  .empty{ font-style: italic; color:#667; font-weight: bold; font-size: 11px; padding: 4px 0; }
 
-  .msg{ text-align:center; font-weight:900; color:#334; padding: 18px 10px; }
+  .empty{
+    font-style: italic;
+    color:#667;
+    font-weight: bold;
+    font-size: 11px;
+    padding: 4px 0;
+  }
 
+  .msg{
+    text-align:center;
+    font-weight:900;
+    color:#334;
+    padding: 18px 10px;
+  }
+
+  /* ==========
+     IMPRESSÃO
+  ========== */
   @media print{
     .acoes{ display:none !important; }
     body{ padding: 0; }
-    .wrap{ padding: 0; }
+    .wrap{ overflow: visible !important; padding: 0; }
     @page{ size: A4 landscape; margin: 12mm; }
     .tree{ transform: scale(.92); transform-origin: top center; }
     .node{ box-shadow:none !important; }
@@ -94,6 +212,7 @@
 </head>
 
 <body>
+
 <h1>Organograma Funcional</h1>
 <p class="sub" id="subtitulo">Carregando…</p>
 
@@ -103,16 +222,26 @@
 
 <div class="wrap">
   <div id="tree" class="tree"></div>
+  <div id="msg" class="msg" style="display:none;"></div>
 </div>
-<div id="msg" class="msg" style="display:none;"></div>
 
 <script>
-  /* ✅ COLOQUE AQUI A BASE CERTA (A MESMA QUE FUNCIONA NO INDEX) */
-  const BASE = "COLE_AQUI_SUA_URL_EXEC";
+  /* ============================
+     URL DO APPS SCRIPT (JSONP)
+     ✅ TROQUE pela sua /exec atual
+  ============================ */
+  const BASE =
+    "https://script.google.com/macros/s/AKfycbyigyFcP5TxvuawbFkbdc7H2PyRhITazUHLMn2vcaWyea5wL6b5RXnFlWQC1F-bTnBVbg/exec";
 
-  // lê filtro (?posto=...)
+  /* ============================
+     LÊ O FILTRO DA URL (robusto)
+  ============================ */
   const params = new URLSearchParams(window.location.search);
-  const filtroRaw = params.get("posto") || "TODOS";
+  const FILTRO_RAW =
+    params.get("posto") ||
+    params.get("filtro") ||
+    params.get("p") ||
+    "TODOS";
 
   function norm(t){
     return String(t ?? "")
@@ -122,19 +251,21 @@
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
   }
-  const FILTRO = norm(filtroRaw);
+
+  const FILTRO = norm(FILTRO_RAW);
 
   document.getElementById("subtitulo").textContent =
-    (FILTRO === "TODOS") ? "Exportação (Todos os postos)" : `Exportação (Filtro: ${filtroRaw})`;
+    (FILTRO === "TODOS")
+      ? "Exportação (Todos os postos)"
+      : `Exportação (Filtro: ${FILTRO_RAW})`;
 
-  function showMsg(text){
-    const msg = document.getElementById("msg");
-    msg.textContent = text;
-    msg.style.display = "block";
-  }
+  /* ============================
+     JSONP
+  ============================ */
+  const CALLBACK = "cb_export_" + Date.now(); // evita conflito
+  const DATA_URL = BASE + "?mode=data&callback=" + CALLBACK + "&_=" + Date.now();
 
-  // JSONP simples (igual ao que já funcionava)
-  function cb(payload){
+  window[CALLBACK] = function(payload){
     try{
       if(!payload || payload.error){
         document.getElementById("subtitulo").textContent = "Erro ao carregar dados.";
@@ -142,28 +273,38 @@
         return;
       }
       renderTree(payload.hierarchy || [], payload.people || []);
-    }catch(e){
-      console.error(e);
+    } catch(err){
+      console.error(err);
       document.getElementById("subtitulo").textContent = "Erro ao processar dados.";
       showMsg("Ocorreu um erro ao montar o organograma.");
     }
   }
-  window.cb = cb;
 
+  function showMsg(text){
+    const msg = document.getElementById("msg");
+    msg.textContent = text;
+    msg.style.display = "block";
+  }
+
+  /* ============================
+     MONTA A ÁRVORE
+  ============================ */
   function renderTree(hierarchy, people){
-    // ✅ FILTRO APLICADO AQUI (de verdade)
+    // ✅ 1) Filtra pessoas (ANTES de montar map)
     const peopleFiltered = (FILTRO === "TODOS")
-      ? people
-      : people.filter(p => norm(p.posto) === FILTRO);
+      ? (people || [])
+      : (people || []).filter(p => norm(p?.posto) === FILTRO);
 
+    // ✅ 2) Pessoas por função (somente filtradas)
     const peopleByFunc = new Map();
     peopleFiltered.forEach(p => {
-      const f = String(p.func || "").trim();
+      const f = String(p?.func || "").trim();
       if(!f) return;
       if(!peopleByFunc.has(f)) peopleByFunc.set(f, []);
       peopleByFunc.get(f).push(p);
     });
 
+    // ✅ 3) Monta nós da hierarquia (todas as funções SEMPRE)
     const nodeMap = new Map();
     const getNode = (name) => {
       const k = String(name || "").trim();
@@ -172,11 +313,14 @@
       return nodeMap.get(k);
     };
 
-    hierarchy.forEach(h => {
-      const func = String(h.func || "").trim();
-      const sup  = String(h.sup || "").trim();
+    (hierarchy || []).forEach(h => {
+      const func = String(h?.func || "").trim();
+      const sup  = String(h?.sup  || "").trim();
       if(!func) return;
+
       const node = getNode(func);
+      if(!node) return;
+
       if(sup){
         const parent = getNode(sup);
         if(parent && !parent.children.some(c => c.name === node.name)){
@@ -185,11 +329,20 @@
       }
     });
 
+    // ✅ 4) Descobre raízes (hierarquia completa)
     const childrenSet = new Set();
     nodeMap.forEach(n => n.children.forEach(c => childrenSet.add(c.name)));
 
-    const roots = [];
-    nodeMap.forEach(n => { if(!childrenSet.has(n.name)) roots.push(n); });
+    let roots = [];
+    nodeMap.forEach(n => {
+      if(!childrenSet.has(n.name)) roots.push(n);
+    });
+
+    // fallback se vier hierarquia vazia
+    if(roots.length === 0){
+      const funcs = [...new Set((hierarchy || []).map(h => String(h?.func||"").trim()).filter(Boolean))];
+      roots = funcs.map(f => getNode(f)).filter(Boolean);
+    }
 
     if(!roots.length){
       document.getElementById("tree").innerHTML = "";
@@ -197,6 +350,7 @@
       return;
     }
 
+    // ✅ 5) Render
     const tree = document.getElementById("tree");
     tree.innerHTML = "";
     document.getElementById("msg").style.display = "none";
@@ -253,9 +407,9 @@
     return li;
   }
 
-  // injeta o JSONP
+  // Inject JSONP
   const s = document.createElement("script");
-  s.src = BASE + "?mode=data&callback=cb&_=" + Date.now();
+  s.src = DATA_URL;
   s.onerror = () => {
     document.getElementById("subtitulo").textContent = "Erro ao carregar script de dados.";
     showMsg("Erro ao carregar o Web App (Apps Script).");
